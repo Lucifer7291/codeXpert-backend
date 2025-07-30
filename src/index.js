@@ -1,6 +1,5 @@
-import https from "https";
-import fs from "fs";
 import path from "path";
+import fs from "fs"; // No longer used on Vercel, only kept locally
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -8,12 +7,10 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
 
-// ✅ Load environment variables
 dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 5000;
 
-// ❌ Block server if essential env variables are missing
+// ✅ Block server if essential env variables are missing
 if (!process.env.MONGO_URI || !process.env.JWT_SECRET) {
   throw new Error("❌ Missing required environment variables in .env");
 }
@@ -34,7 +31,7 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// ✅ Load Models (Just importing to register schemas)
+// ✅ Load Models
 import "./models/categoryModel.js";
 import "./models/testimonialModel.js";
 import "./models/homeModel.js";
@@ -78,38 +75,28 @@ app.use("/api/techstack", techStackRoutes);
 app.use("/api/download", downloadRoutes);
 app.use("/api", subscribeRoutes); // subscribe: POST /api/subscribe
 
-// ✅ Test API endpoint
+// ✅ Test API
 app.get("/api", (req, res) => {
-  res.send("🚀 CodeXpert Backend API is Live!");
+  res.send("🚀 CodeXpert Backend API is Live on Vercel!");
 });
 
-// ✅ 404 - Not Found Handler
+// ✅ 404 Handler
 app.use((req, res) => {
   res.status(404).json({ message: "API Route Not Found" });
 });
 
-// ✅ Global Error Handler
+// ✅ Error Handler
 app.use((err, req, res, next) => {
   console.error("❌ Server Error:", err.stack);
   res.status(500).json({ message: "Internal Server Error" });
 });
 
-// ✅ Create Server (HTTPS if certs available, else HTTP)
-const __dirname = path.resolve();
-const keyPath = path.join(__dirname, "ssl/key.pem");
-const certPath = path.join(__dirname, "ssl/cert.pem");
-
-if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
-  const sslOptions = {
-    key: fs.readFileSync(keyPath),
-    cert: fs.readFileSync(certPath),
-  };
-
-  https.createServer(sslOptions, app).listen(PORT, () => {
-    console.log(`✅ HTTPS Server running at https://localhost:${PORT}`);
-  });
-} else {
+// ✅ Local dev: Run server only when NOT in Vercel
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
-    console.log(`✅ HTTP Server running at http://localhost:${PORT}`);
+    console.log(`✅ Local HTTP Server running at http://localhost:${PORT}`);
   });
 }
+
+export default app;
